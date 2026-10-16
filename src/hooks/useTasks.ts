@@ -1,6 +1,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useEffect, useRef, useState } from 'react';
 import type { TodoTask } from '../types/task';
+import { isTaskCategoryId } from '../types/category';
 
 const STORAGE_KEY = '@todo/tasks-v1';
 
@@ -24,7 +25,15 @@ export function useTasks(): UseTasksResult {
         if (storedTasks && isMounted) {
           const parsedTasks: unknown = JSON.parse(storedTasks);
           if (Array.isArray(parsedTasks)) {
-            setTasks(parsedTasks as TodoTask[]);
+            const migratedTasks: TodoTask[] = parsedTasks
+              .filter((task): task is Record<string, unknown> => {
+                return typeof task === 'object' && task !== null;
+              })
+              .map((task) => ({
+                ...task,
+                categoryId: isTaskCategoryId(task.categoryId) ? task.categoryId : 'personal',
+              })) as TodoTask[];
+            setTasks(migratedTasks);
           }
         }
       } catch (error) {
