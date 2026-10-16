@@ -1,11 +1,13 @@
 import { Feather } from '@expo/vector-icons';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import type { AppTheme } from '../theme/colors';
+import { taskCategories } from '../types/category';
 import type { TodoTask } from '../types/task';
 
 interface TaskCardProps {
   task: TodoTask;
   theme: AppTheme;
+  mode: 'light' | 'dark';
   onToggle: (taskId: string) => void;
   onEdit: (task: TodoTask) => void;
   onDelete: (task: TodoTask) => void;
@@ -27,6 +29,7 @@ function formatDueDate(value: string): string {
 export function TaskCard({
   task,
   theme,
+  mode,
   onToggle,
   onEdit,
   onDelete,
@@ -36,6 +39,9 @@ export function TaskCard({
     medium: theme.medium,
     high: theme.high,
   }[task.priority];
+  const category = taskCategories.find((item) => item.id === task.categoryId) ?? taskCategories[1];
+  const categoryColor = mode === 'dark' ? category.darkColor : category.lightColor;
+  const categoryBackground = mode === 'dark' ? category.darkBackground : category.lightBackground;
   const isOverdue =
     task.dueDate !== null &&
     !task.completed &&
@@ -76,6 +82,12 @@ export function TaskCard({
         onPress={() => onEdit(task)}
         style={styles.content}
       >
+        <View style={[styles.categoryTag, { backgroundColor: categoryBackground }]}>
+          <Feather name={category.icon} size={10} color={categoryColor} />
+          <Text style={[styles.categoryText, { color: categoryColor }]} numberOfLines={1}>
+            {category.label}
+          </Text>
+        </View>
         <Text
           numberOfLines={2}
           style={[
@@ -175,6 +187,20 @@ const styles = StyleSheet.create({
   content: {
     flex: 1,
     minWidth: 0,
+  },
+  categoryTag: {
+    alignSelf: 'flex-start',
+    minHeight: 20,
+    borderRadius: 6,
+    paddingHorizontal: 7,
+    flexDirection: 'row',
+    alignItems: 'center',
+    columnGap: 4,
+    marginBottom: 5,
+  },
+  categoryText: {
+    fontSize: 10,
+    fontWeight: '700',
   },
   title: {
     fontSize: 15,

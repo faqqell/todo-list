@@ -1,5 +1,7 @@
 export type TaskPriority = 'low' | 'medium' | 'high';
 
+export type TaskCategoryId = 'work' | 'personal' | 'shopping' | 'study';
+
 export type TaskFilter = 'all' | 'active' | 'completed';
 
 export interface TodoTask {
@@ -7,6 +9,7 @@ export interface TodoTask {
   title: string;
   description: string;
   dueDate: string | null;
+  categoryId: TaskCategoryId;
   priority: TaskPriority;
   completed: boolean;
   createdAt: string;
@@ -15,5 +18,5 @@ export interface TodoTask {
 
 export type TaskDraft = Pick<
   TodoTask,
-  'title' | 'description' | 'dueDate' | 'priority' | 'completed'
+  'title' | 'description' | 'dueDate' | 'categoryId' | 'priority' | 'completed'
 >;

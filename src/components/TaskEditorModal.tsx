@@ -15,12 +15,14 @@ import {
   View,
 } from 'react-native';
 import type { AppTheme } from '../theme/colors';
-import type { TaskDraft, TaskPriority, TodoTask } from '../types/task';
+import { taskCategories } from '../types/category';
+import type { TaskDraft, TaskPriority, TodoTask, TaskCategoryId } from '../types/task';
 
 interface TaskEditorModalProps {
   visible: boolean;
   task: TodoTask | null;
   theme: AppTheme;
+  mode: 'light' | 'dark';
   onClose: () => void;
   onSave: (draft: TaskDraft) => void;
 }
@@ -43,12 +45,14 @@ export function TaskEditorModal({
   visible,
   task,
   theme,
+  mode,
   onClose,
   onSave,
 }: TaskEditorModalProps) {
   const [title, setTitle] = useState(task?.title ?? '');
   const [description, setDescription] = useState(task?.description ?? '');
   const [priority, setPriority] = useState<TaskPriority>(task?.priority ?? 'medium');
+  const [categoryId, setCategoryId] = useState<TaskCategoryId>(task?.categoryId ?? 'personal');
   const [dueDate, setDueDate] = useState<Date | null>(
     task?.dueDate ? new Date(task.dueDate) : null,
   );
@@ -75,6 +79,7 @@ export function TaskEditorModal({
       title: trimmedTitle,
       description: description.trim(),
       dueDate: dueDate?.toISOString() ?? null,
+      categoryId,
       priority,
       completed: task?.completed ?? false,
     });
@@ -155,6 +160,39 @@ export function TaskEditorModal({
               textAlignVertical="top"
               style={[inputStyle, styles.descriptionInput]}
             />
+
+            <Text style={[styles.label, styles.spacedLabel, { color: theme.text }]}>
+              Категория
+            </Text>
+            <View style={styles.categoryGrid}>
+              {taskCategories.map((category) => {
+                const selected = categoryId === category.id;
+                const color = mode === 'dark' ? category.darkColor : category.lightColor;
+                const background = mode === 'dark'
+                  ? category.darkBackground
+                  : category.lightBackground;
+                return (
+                  <Pressable
+                    accessibilityRole="radio"
+                    accessibilityState={{ selected }}
+                    key={category.id}
+                    onPress={() => setCategoryId(category.id)}
+                    style={[
+                      styles.categoryOption,
+                      {
+                        backgroundColor: selected ? background : theme.surface,
+                        borderColor: selected ? color : theme.border,
+                      },
+                    ]}
+                  >
+                    <Feather name={category.icon} size={15} color={color} />
+                    <Text style={[styles.categoryOptionText, { color: selected ? color : theme.muted }]}>
+                      {category.label}
+                    </Text>
+                  </Pressable>
+                );
+              })}
+            </View>
 
             <Text style={[styles.label, styles.spacedLabel, { color: theme.text }]}>
               Приоритет
@@ -331,6 +369,26 @@ const styles = StyleSheet.create({
   priorityRow: {
     flexDirection: 'row',
     columnGap: 8,
+  },
+  categoryGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    columnGap: 8,
+    rowGap: 8,
+  },
+  categoryOption: {
+    width: '48%',
+    minHeight: 42,
+    borderWidth: 1,
+    borderRadius: 9,
+    paddingHorizontal: 10,
+    flexDirection: 'row',
+    alignItems: 'center',
+    columnGap: 8,
+  },
+  categoryOptionText: {
+    fontSize: 12,
+    fontWeight: '600',
   },
   priorityOption: {
     flex: 1,

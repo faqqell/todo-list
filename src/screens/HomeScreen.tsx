@@ -8,6 +8,7 @@ import {
   LayoutAnimation,
   Platform,
   Pressable,
+  ScrollView,
   StyleSheet,
   Text,
   TextInput,
@@ -21,7 +22,8 @@ import { TaskEditorModal } from '../components/TaskEditorModal';
 import { useTasks } from '../hooks/useTasks';
 import { themes } from '../theme/colors';
 import type { AppTheme } from '../theme/colors';
-import type { TaskDraft, TaskFilter, TodoTask } from '../types/task';
+import { taskCategories } from '../types/category';
+import type { TaskCategoryId, TaskDraft, TaskFilter, TodoTask } from '../types/task';
 
 const filterOptions: { key: TaskFilter; label: string }[] = [
   { key: 'all', label: 'Все' },
@@ -81,6 +83,7 @@ export function HomeScreen() {
   const systemScheme = useColorScheme();
   const [themeOverride, setThemeOverride] = useState<'light' | 'dark' | null>(null);
   const [filter, setFilter] = useState<TaskFilter>('all');
+  const [categoryFilter, setCategoryFilter] = useState<TaskCategoryId | 'all'>('all');
   const [search, setSearch] = useState('');
   const [editorVisible, setEditorVisible] = useState(false);
   const [editorSession, setEditorSession] = useState(0);
@@ -99,13 +102,14 @@ export function HomeScreen() {
       .filter((task) => {
         if (filter === 'active' && task.completed) return false;
         if (filter === 'completed' && !task.completed) return false;
+        if (categoryFilter !== 'all' && task.categoryId !== categoryFilter) return false;
         return task.title.toLocaleLowerCase('ru-RU').includes(query);
       })
       .sort((first, second) => {
         return Number(first.completed) - Number(second.completed) ||
           second.createdAt.localeCompare(first.createdAt);
       });
-  }, [filter, query, tasks]);
+  }, [categoryFilter, filter, query, tasks]);
 
   const counts: Record<TaskFilter, number> = {
     all: tasks.length,
@@ -286,9 +290,80 @@ export function HomeScreen() {
           ))}
         </View>
 
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.categoryFilterRow}
+          accessibilityRole="tablist"
+        >
+          <Pressable
+            accessibilityRole="tab"
+            accessibilityState={{ selected: categoryFilter === 'all' }}
+            onPress={() => setCategoryFilter('all')}
+            style={[
+              styles.categoryFilterButton,
+              {
+                backgroundColor: categoryFilter === 'all' ? theme.text : theme.surface,
+                borderColor: categoryFilter === 'all' ? theme.text : theme.border,
+              },
+            ]}
+          >
+            <Feather
+              name="layers"
+              size={13}
+              color={categoryFilter === 'all' ? theme.background : theme.muted}
+            />
+            <Text
+              style={[
+                styles.categoryFilterText,
+                { color: categoryFilter === 'all' ? theme.background : theme.muted },
+              ]}
+            >
+              Все разделы
+            </Text>
+          </Pressable>
+          {taskCategories.map((category) => {
+            const selected = categoryFilter === category.id;
+            const color = colorMode === 'dark' ? category.darkColor : category.lightColor;
+            const background = colorMode === 'dark'
+              ? category.darkBackground
+              : category.lightBackground;
+            const categoryCount = tasks.filter((task) => task.categoryId === category.id).length;
+            return (
+              <Pressable
+                accessibilityRole="tab"
+                accessibilityState={{ selected }}
+                key={category.id}
+                onPress={() => setCategoryFilter(category.id)}
+                style={[
+                  styles.categoryFilterButton,
+                  {
+                    backgroundColor: selected ? background : theme.surface,
+                    borderColor: selected ? color : theme.border,
+                  },
+                ]}
+              >
+                <Feather name={category.icon} size={13} color={color} />
+                <Text style={[styles.categoryFilterText, { color: selected ? color : theme.muted }]}>
+                  {category.label}
+                </Text>
+                <Text style={[styles.categoryFilterCount, { color: selected ? color : theme.subtle }]}>
+                  {categoryCount}
+                </Text>
+              </Pressable>
+            );
+          })}
+        </ScrollView>
+
         <View style={styles.listHeading}>
           <Text style={[styles.listTitle, { color: theme.text }]}>
-            {filter === 'completed' ? 'Готово' : filter === 'active' ? 'В процессе' : 'Мои задачи'}
+            {categoryFilter !== 'all'
+              ? taskCategories.find((category) => category.id === categoryFilter)?.label
+              : filter === 'completed'
+                ? 'Готово'
+                : filter === 'active'
+                  ? 'В процессе'
+                  : 'Мои задачи'}
           </Text>
           <Text style={[styles.listCount, { color: theme.muted }]}>
             {visibleTasks.length} шт.
@@ -315,6 +390,7 @@ export function HomeScreen() {
               <TaskCard
                 task={item}
                 theme={theme}
+                mode={colorMode}
                 onToggle={toggleTask}
                 onEdit={openEditModal}
                 onDelete={confirmDelete}
@@ -345,6 +421,7 @@ export function HomeScreen() {
         visible={editorVisible}
         task={editingTask}
         theme={theme}
+        mode={colorMode}
         onClose={closeEditor}
         onSave={saveTask}
       />
@@ -461,7 +538,29 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     columnGap: 5,
     marginTop: 12,
-    marginBottom: 19,
+    marginBottom: 10,
+  },
+  categoryFilterRow: {
+    alignItems: 'center',
+    columnGap: 7,
+    paddingBottom: 17,
+  },
+  categoryFilterButton: {
+    minHeight: 34,
+    borderWidth: 1,
+    borderRadius: 9,
+    paddingHorizontal: 10,
+    flexDirection: 'row',
+    alignItems: 'center',
+    columnGap: 6,
+  },
+  categoryFilterText: {
+    fontSize: 11,
+    fontWeight: '600',
+  },
+  categoryFilterCount: {
+    fontSize: 10,
+    fontWeight: '700',
   },
   filterTab: {
     minHeight: 35,
